@@ -8,6 +8,7 @@ SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.database_username}:{settings.
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
+    connect_args={"sslmode": "require"},
     pool_pre_ping=True
 )
 
