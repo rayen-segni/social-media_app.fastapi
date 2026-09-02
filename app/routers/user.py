@@ -2,6 +2,7 @@ from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
 from .. import models, schemas, utils
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from ..database import get_db
 
@@ -20,7 +21,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
   hased_password = utils.hash(user.password)
   user.password = hased_password
   
-  new_user = models.User(**user.dict())
+  new_user = models.User(**user.model_dump())
   try:
     db.add(new_user)
     db.commit()
@@ -37,7 +38,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         response_model=schemas.UserOut)
 def get_user(id: int, db: Session = Depends(get_db)):
 
-  user = db.query(models.User).filter(models.User.id == id).first()
+  user = db.scalars(select(models.User).where(models.User.id == id)).first()
 
   if not user:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

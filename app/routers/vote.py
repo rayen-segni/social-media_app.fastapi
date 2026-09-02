@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy import select, and_
 from ..database import get_db
 from .. import oauth2, schemas, models
 
@@ -16,15 +16,15 @@ def add_vote(vote: schemas.Vote,
             db: Session = Depends(get_db),
             current_user: schemas.TokenData = Depends(oauth2.get_current_user)):
   
-  post = db.query(models.Post.id).filter(models.Post.id == vote.post_id).first()
+  post = db.scalar(select(models.Post.id).where(models.Post.id == vote.post_id))
   
   if post is None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Post with id: {vote.post_id} Not Found")
     
-  vote_query = db.query(models.Vote).filter(and_(models.Vote.post_id == vote.post_id,
-                                          models.Vote.user_id == current_user.id))
-  exist = vote_query.first()
+  exist = db.scalars(select(models.Vote).where(
+      and_(models.Vote.post_id == vote.post_id, models.Vote.user_id == current_user.id)
+  )).first()
   
   if vote.vote_dir == True:
     if exist:
@@ -42,7 +42,7 @@ def add_vote(vote: schemas.Vote,
       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                           detail=f"Vote does not exist")
 
-    vote_query.delete(synchronize_session=False)
+    db.delete(exist)
     db.commit()
     return {"message": "Vote removed with success"}
 
