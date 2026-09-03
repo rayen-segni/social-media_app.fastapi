@@ -7,8 +7,9 @@
 [![Migrations](https://img.shields.io/badge/Migrations-Alembic-orange.svg)](https://alembic.sqlalchemy.org/)
 [![Auth](https://img.shields.io/badge/Auth-OAuth2%20%7C%20JWT-black.svg)](https://jwt.io/)
 [![Container](https://img.shields.io/badge/Container-Docker-2496ED.svg)](https://www.docker.com/)
+[![Testing](https://img.shields.io/badge/Testing-Pytest-yellow.svg)](https://docs.pytest.org/)
 
-A modern, production-ready backend REST API for a social media platform built with **FastAPI**, **SQLAlchemy 2.0**, **PostgreSQL**, and **Alembic**. It features secure JWT authentication, password hashing with **Bcrypt**, full CRUD operations for user posts, an interactive upvoting/like system with SQL aggregations, search and pagination capabilities, Docker containerization, and production deployment scripts (Nginx + Gunicorn systemd).
+A modern, production-ready backend REST API for a social media platform built with **FastAPI**, **SQLAlchemy 2.0**, **PostgreSQL**, **Alembic**, and **Pytest**. It features secure JWT authentication, password hashing with **Bcrypt**, full CRUD operations for user posts, an interactive upvoting/like system with SQL aggregations, search and pagination capabilities, Docker containerization, production deployment scripts (Nginx + Gunicorn systemd), and a comprehensive automated test suite.
 
 ---
 
@@ -40,6 +41,10 @@ A modern, production-ready backend REST API for a social media platform built wi
   - [Gunicorn Systemd Service](#gunicorn-systemd-service)
   - [Nginx Reverse Proxy](#nginx-reverse-proxy)
 - [Running Automated Tests](#-running-automated-tests)
+  - [Test Database Isolation](#test-database-isolation)
+  - [Pytest Fixtures Architecture](#pytest-fixtures-architecture)
+  - [Test Suites Breakdown](#test-suites-breakdown)
+  - [Running the Tests](#running-the-tests)
 - [License & Authors](#-license--authors)
 
 ---
@@ -271,9 +276,12 @@ social-media_app.fastapi/
 │   ├── schemas.py                    # Pydantic schemas (Request / Response validation)
 │   └── utils.py                      # Bcrypt password hashing & verification
 │
-├── tests/                            # Test suite
+├── tests/                            # Automated test suite (Pytest)
 │   ├── __init__.py
-│   └── test_users.py                 # Pytest test cases (root, users, etc.)
+│   ├── conftest.py                   # Centralized fixtures, DB engine, and auth setup
+│   ├── test_users.py                 # Registration, login, & authentication tests
+│   ├── test_posts.py                 # Post CRUD, authorization, & ownership tests
+│   └── test_votes.py                 # Upvoting, duplicate prevention, & vote removal tests
 │
 ├── .dockerignore                     # Docker build exclusion rules
 ├── .env                              # Environment variable definitions (DO NOT COMMIT SECRETS)
@@ -764,17 +772,114 @@ All incoming HTTP requests on port 80 are now forwarded securely to `http://loca
 
 ## 🧪 Running Automated Tests
 
-Run the test suite using `pytest`:
+The application includes a comprehensive automated test suite powered by **[Pytest](https://docs.pytest.org/)** and Starlette's **`TestClient`**. The tests cover authentication, user management, posts CRUD operations, access control, and the voting mechanism.
 
-```bash
-# Run all tests with verbose output
-pytest -v
-
-# Run with test printouts enabled
-pytest -v -s
+```text
+tests/
+├── conftest.py          # Centralized test configuration, database engine, & fixtures
+├── test_users.py        # User registration, OAuth2 login, & JWT validation tests
+├── test_posts.py        # Post creation, retrieval, ownership, updates, & deletion tests
+└── test_votes.py        # Upvoting, duplicate vote prevention, & vote removal tests
 ```
 
-The test suite checks root welcome endpoint status, user registration workflows, and endpoint responses.
+---
+
+### Test Database Isolation
+
+All tests execute against a dedicated testing database (`social_media_app_test`) to ensure zero pollution or interference with development or production databases.
+
+- **Schema Lifecycle (`setup_database`)**:
+  - Scoped to the entire test session (`scope="session", autouse=True`).
+  - Tables are created once at the beginning of the test run (`Base.metadata.create_all`) and dropped after all tests finish (`drop_all`).
+- **Data Cleanup & Isolation (`session`)**:
+  - Scoped to each test function (`scope="function"`).
+  - Rolls back pending transactions and cleanly deletes data from `votes`, `posts`, and `users` tables between tests.
+  - Guarantees test **idempotency** and speed without the heavy overhead of rebuilding schemas on every test.
+- **FastAPI Dependency Injection (`client`)**:
+  - Overrides FastAPI's `get_db` dependency via `app.dependency_overrides[get_db] = override_get_db`.
+  - Routes all internal API database transactions through the testing session and clears overrides after each test.
+
+---
+
+### Pytest Fixtures Architecture
+
+Fixtures are centrally managed in [`tests/conftest.py`](tests/conftest.py) to decouple tests from one another:
+
+| Fixture | Type | Description |
+| :--- | :--- | :--- |
+| **`session`** | `Session` | Yields a clean SQLAlchemy session bound to `social_media_app_test`. |
+| **`client`** | `TestClient` | FastAPI test client with mocked database dependency (unauthenticated). |
+| **`test_user`** | `dict` | Pre-seeds User 1 (`test_user@gmail.com`) directly in DB with hashed password; returns dict with plain password and ID. |
+| **`test_user2`** | `dict` | Pre-seeds User 2 (`test_user2@gmail.com`) in DB for testing permissions and ownership. |
+| **`token`** | `str` | Signs and returns a valid JWT Bearer access token for `test_user`. |
+| **`authorized_client`** | `TestClient` | `TestClient` configured with `Authorization: Bearer <token>` header for User 1. |
+| **`test_posts`** | `list[Post]` | Pre-seeds 4 sample posts (posts 0–2 owned by User 1; post 3 owned by User 2). |
+| **`test_vote`** | `Vote` | Pre-seeds an active upvote by User 1 on post 3 (defined in `tests/test_votes.py`). |
+
+---
+
+### Test Suites Breakdown
+
+#### 1. User & Authentication Suite (`tests/test_users.py`)
+- **`test_create_user`**: Verifies successful user creation (`POST /user/`), validates HTTP `201 Created`, and confirms the response matches the `UserOut` schema.
+- **`test_login`**: Authenticates credentials (`POST /login`), verifies HTTP `200 OK`, checks the `Bearer` token type, and decodes the JWT payload to assert the embedded `user_id`.
+- **`test_incorrect_login`**: Parameterized test matrix asserting proper error responses:
+  - Wrong email $\rightarrow$ `403 Forbidden`
+  - Wrong password $\rightarrow$ `403 Forbidden`
+  - Missing username $\rightarrow$ `422 Unprocessable Entity`
+  - Missing password $\rightarrow$ `422 Unprocessable Entity`
+
+#### 2. Posts Management Suite (`tests/test_posts.py`)
+- **`test_get_all_posts`**: Validates `GET /posts/` response model against `PostResponse` joined with vote counts.
+- **`test_unautorized_user_get_all_posts`**: Verifies unauthenticated GET requests are rejected with `401 Unauthorized`.
+- **`test_get_one_post` & `test_get_one_not_exist_post`**: Tests single post lookup (`GET /posts/{id}`) returning `200 OK` and non-existent IDs returning `404 Not Found`.
+- **`test_create_post`**: Parameterized test verifying post creation with diverse combinations of title, content, and published booleans.
+- **`test_create_post_default_published_true`**: Asserts newly created posts default `published` to `True`.
+- **`test_unautorized_create_post`**: Asserts unauthorized creation attempts fail with `401 Unauthorized`.
+- **`test_user_delete_post`**: Confirms post owner can delete their post returning `204 No Content`.
+- **`test_unauthorized_user_delete_post`**: Asserts unauthenticated deletion fails with `401 Unauthorized`.
+- **`test_delete_not_owned_post`**: Ensures users cannot delete posts owned by other users (`403 Forbidden`).
+- **`test_delete_none_exist_post`**: Deleting an invalid post ID returns `404 Not Found`.
+- **`test_update_post`**: Verifies post owner can update title and content returning `200 OK`.
+- **`test_update_other_user_post`**: Ensures users cannot update posts owned by other users (`403 Forbidden`).
+- **`test_unauthorized_user_update_post`**: Asserts unauthenticated update attempts fail with `401 Unauthorized`.
+
+#### 3. Votes Management Suite (`tests/test_votes.py`)
+- **`test_vote_on_post`**: Successfully casts an upvote (`vote_dir=True`) on a post returning `201 Created`.
+- **`test_vote_twice_post`**: Prevents duplicate upvotes by the same user on the same post returning `409 Conflict`.
+- **`test_delete_vote`**: Removes an existing upvote (`vote_dir=False`) returning `201 Created`.
+- **`test_delete_vote_non_exist`**: Removing a non-existent vote returns `404 Not Found`.
+- **`test_vote_post_non_exist`**: Attempting to vote on an invalid post ID returns `404 Not Found`.
+- **`test_vote_unauthorized_user`**: Rejects unauthenticated vote attempts with `401 Unauthorized`.
+
+---
+
+### Running the Tests
+
+Ensure your local PostgreSQL server is running, then execute:
+
+```bash
+# Run all test suites with verbose output
+pytest -v
+
+# Run with standard output / print statements visible
+pytest -v -s
+
+# Run a specific test module
+pytest tests/test_users.py -v
+pytest tests/test_posts.py -v
+pytest tests/test_votes.py -v
+
+# Run a specific test function by name/keyword
+pytest -k "test_login" -v
+pytest -k "vote" -v
+
+# Stop immediately upon first test failure
+pytest -x
+
+# Generate a test coverage report (requires pytest-cov)
+pytest --cov=app tests/
+```
 
 ---
 
