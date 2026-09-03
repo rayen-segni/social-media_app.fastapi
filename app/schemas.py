@@ -64,6 +64,6 @@ class Vote(BaseModel):
   vote_dir: bool
 
 
-class Post_Votes(BaseModel):
+class PostVotes(BaseModel):
   Post: PostResponse
   votes: int

@@ -2,6 +2,8 @@ version: '3.8'
 services:
   social-app-backend:
     build: .
+    environment:
+      - DATABASE_HOSTNAME=postgres
     depends_on:
       - postgres
     image: rayen4dev/social-media-app:latest

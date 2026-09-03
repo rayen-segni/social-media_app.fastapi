@@ -15,7 +15,7 @@ router = APIRouter(
 
 #Show all posts
 @router.get("/",
-        response_model=List[schemas.Post_Votes])
+        response_model=List[schemas.PostVotes])
 def get_posts(db: Session = Depends(get_db),
                 current_user: schemas.TokenData = Depends(oauth2.get_current_user),
                 limit: int = 10, search: str = ""):
@@ -28,10 +28,6 @@ def get_posts(db: Session = Depends(get_db),
       .limit(limit)
   )
   posts_votes = db.execute(query).all()
-  
-  if not posts_votes:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                        detail="No posts Found")
   
   return posts_votes
 
@@ -55,7 +51,7 @@ def create_posts(post: schemas.PostCreate,
 
 #Get Single Post
 @router.get("/{id}",
-        response_model=schemas.Post_Votes)
+        response_model=schemas.PostVotes)
 def get_post(id: int, db: Session = Depends(get_db),
                 current_user: schemas.TokenData = Depends(oauth2.get_current_user)):
   
@@ -86,7 +82,7 @@ def delete_post(id: int, db: Session = Depends(get_db),
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"post with id: {id} was not found")
 
-  if post.owner_id != current_user.id:
+  if post.owner_id != current_user.id: #type: ignore
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                         detail="Not authorized to perform request action")
   
@@ -110,7 +106,7 @@ def update_post(updated_post: schemas.PostCreate,
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"post with id: {id} was not found")
 
-  if post.owner_id != current_user.id:
+  if post.owner_id != current_user.id: #type: ignore
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                         detail="Not authorized to perform request action")
   
