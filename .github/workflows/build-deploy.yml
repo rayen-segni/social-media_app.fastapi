@@ -87,6 +87,7 @@ jobs:
       FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
 
     steps:
+    # Deploy to FastAPI Cloud
       - name: Pulling Git Repo
         uses: actions/checkout@v4
 
@@ -102,6 +103,18 @@ jobs:
 
       - name: Deploy to FastAPI Cloud
         run: python3 -m fastapi cloud deploy
-
+    
+    # # Deploy to Remote Ubuntu Server
+    #   -
+    #     name: Deploy to Ubuntu Server
+    #     uses: appleboy/ssh-action@master
+    #     with:
+    #       host: ${{secrets.PROD_SERVER_HOST}}
+    #       username: ${{secrets.PROD_SERVER_USERNAME}}
+    #       password: ${{secrets.PROD_SERVER_PASSWORD}}
+    #       script: |
+    #         cd app/src
+    #         git pull
+    #         echo ${{secrets.PROD_SERVER_PASSWORD}} | sudo -S systemctl restart social_media
 
 
