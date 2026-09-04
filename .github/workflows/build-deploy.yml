@@ -9,7 +9,13 @@ jobs:
     job1:
         runs-on: ubuntu-latest
         steps:
-            -   name: pulling git repo
+            -   name: Pulling Git Repo
                 uses: actions/checkout@v4
-            -   name: Say Hi To Rayen
-                run: echo "Hello Rayen !"
+            -   name: Install Python Version 3.14
+                uses: actions/setup-python@v7
+                with:
+                    python-version: "3.14"
+            -   name: Upgrade Pip
+                run: python3 -m pip install --upgrade pip
+            -   name: Install Dependencies
+                run: pip install -r requirements.txt
