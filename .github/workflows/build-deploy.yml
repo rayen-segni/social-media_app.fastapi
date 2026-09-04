@@ -8,14 +8,14 @@ on:
 jobs:
     job1:
         env:
-            DATABASE_HOSTNAME: localhost
-            DATABASE_PORT: 5432
-            DATABASE_USERNAME: postgres
-            DATABASE_NAME: social_media_app
-            DATABASE_PASSWORD: rayen
-            SECRET_KEY: 4F29FH29AFBN921GHF92BG92AB934GB92
-            ALGORITHM: HS256
-            ACCESS_TOKEN_EXPIRE_MINUTES: 60
+            DATABASE_HOSTNAME: ${{secrets.DATABASE_HOSTNAME}}
+            DATABASE_PORT: ${{secrets.DATABASE_PORT}}
+            DATABASE_USERNAME: ${{secrets.DATABASE_USERNAME}}
+            DATABASE_NAME: ${{secrets.DATABASE_NAME}}
+            DATABASE_PASSWORD: ${{secrets.DATABASE_PASSWORD}}
+            SECRET_KEY: ${{secrets.SECRET_KEY}}
+            ALGORITHM: ${{secrets.ALGORITHM}}
+            ACCESS_TOKEN_EXPIRE_MINUTES: ${{secrets.ACCESS_TOKEN_EXPIRE_MINUTES}}
         runs-on: ubuntu-latest
         steps:
             -   name: Pulling Git Repo
