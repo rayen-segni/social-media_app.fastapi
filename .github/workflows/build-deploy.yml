@@ -3,7 +3,7 @@ on:
   push:
     branches: ["master"]
   pull_request:
-    branches: ["feature X"]
+  workflow_dispatch:
 
 jobs:
   build:
