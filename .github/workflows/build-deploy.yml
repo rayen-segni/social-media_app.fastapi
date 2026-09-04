@@ -102,17 +102,17 @@ jobs:
 
       - name: Sync Environment Variables to FastAPI Cloud
         run: |
-          python3 -m fastapi cloud env set DATABASE_HOSTNAME "${{ secrets.DATABASE_HOSTNAME }}"
-          python3 -m fastapi cloud env set DATABASE_PORT "${{ secrets.DATABASE_PORT }}"
-          python3 -m fastapi cloud env set DATABASE_USERNAME "${{ secrets.DATABASE_USERNAME }}"
-          python3 -m fastapi cloud env set DATABASE_NAME "${{ secrets.DATABASE_NAME }}"
-          python3 -m fastapi cloud env set ALGORITHM "${{ secrets.ALGORITHM }}"
-          python3 -m fastapi cloud env set ACCESS_TOKEN_EXPIRE_MINUTES "${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}"
-          python3 -m fastapi cloud env set --secret DATABASE_PASSWORD "${{ secrets.DATABASE_PASSWORD }}"
-          python3 -m fastapi cloud env set --secret SECRET_KEY "${{ secrets.SECRET_KEY }}"
+          python3 -m fastapi_cli cloud env set DATABASE_HOSTNAME "${{ secrets.DATABASE_HOSTNAME }}"
+          python3 -m fastapi_cli cloud env set DATABASE_PORT "${{ secrets.DATABASE_PORT }}"
+          python3 -m fastapi_cli cloud env set DATABASE_USERNAME "${{ secrets.DATABASE_USERNAME }}"
+          python3 -m fastapi_cli cloud env set DATABASE_NAME "${{ secrets.DATABASE_NAME }}"
+          python3 -m fastapi_cli cloud env set ALGORITHM "${{ secrets.ALGORITHM }}"
+          python3 -m fastapi_cli cloud env set ACCESS_TOKEN_EXPIRE_MINUTES "${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}"
+          python3 -m fastapi_cli cloud env set --secret DATABASE_PASSWORD "${{ secrets.DATABASE_PASSWORD }}"
+          python3 -m fastapi_cli cloud env set --secret SECRET_KEY "${{ secrets.SECRET_KEY }}"
 
       - name: Deploy to FastAPI Cloud
-        run: python3 -m fastapi deploy
+        run: python3 -m fastapi_cli deploy
 
 
 
