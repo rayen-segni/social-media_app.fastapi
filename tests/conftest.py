@@ -9,12 +9,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
-# SQLALCHEMY_DATABASE_URL = 'postgresql://<username>:<password>@<ip-adress/hostname>:<port>/<database_name>'
+
+test_db_name = settings.database_name_test or f"{settings.database_name}_test"
 
 TESTING_SQLALCHEMY_DATABASE_URL = (
     f"postgresql://{settings.database_username}:{settings.database_password}"
     f"@{settings.database_hostname}:{settings.database_port}/"
-    f"{settings.database_name_test}"
+    f"{test_db_name}"
 )
 
 engine = create_engine(

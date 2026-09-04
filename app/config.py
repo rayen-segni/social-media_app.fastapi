@@ -5,7 +5,7 @@ class Settings(BaseSettings):
   database_port: str
   database_username: str
   database_name: str
-  database_name_test: str
+  database_name_test: str | None = None 
   database_password: str
   secret_key: str
   algorithm: str
