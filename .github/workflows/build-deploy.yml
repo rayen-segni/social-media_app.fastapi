@@ -87,22 +87,32 @@ jobs:
       FASTAPI_CLOUD_APP_ID: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
 
     steps:
-    # Deploy to FastAPI Cloud
+    # Deploy to FastAPI Cloud Using fastapi cloud action
       - name: Pulling Git Repo
         uses: actions/checkout@v4
 
-      - name: Install Python Version 3.14
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
-
-      - name: Upgrade Pip & Install FastAPI CLI
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install "fastapi[standard]"
-
       - name: Deploy to FastAPI Cloud
-        run: python3 -m fastapi cloud deploy
+        uses: rayen-segni/fastapi-cloud@v1
+        with:
+          app-id: ${{ secrets.FASTAPI_CLOUD_APP_ID }}
+          token: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
+
+    # # Deploy to FastAPI Cloud
+    #   - name: Pulling Git Repo
+    #     uses: actions/checkout@v4
+
+    #   - name: Install Python Version 3.14
+    #     uses: actions/setup-python@v7
+    #     with:
+    #       python-version: "3.14"
+
+    #   - name: Upgrade Pip & Install FastAPI CLI
+    #     run: |
+    #       python3 -m pip install --upgrade pip
+    #       python3 -m pip install "fastapi[standard]"
+
+    #   - name: Deploy to FastAPI Cloud
+    #     run: python3 -m fastapi cloud deploy
     
     # # Deploy to Remote Ubuntu Server
     #   -
